@@ -26049,7 +26049,7 @@ struct BurnDriver BurnDrvsnes_Ogrebattle = {
 // https://www.romhacking.net/translations/3807/
 // https://www.romhacking.net/hacks/9733/
 static struct BurnRomInfo snes_OgrebattleteRomDesc[] = {
-	{ "Ogre Battle - The March of the Black Queen T-Eng v1.2 (2018)(FinS).sfc", 3145728, 0x7514efdf, BRF_ESS | BRF_PRG },
+	{ "Ogre Battle - The March of the Black Queen T-Eng v1.2 (2018)(FinS).sfc", 2097152, 0x7514efdf, BRF_ESS | BRF_PRG },
 };
 
 STD_ROM_PICK(snes_Ogrebattlete)
