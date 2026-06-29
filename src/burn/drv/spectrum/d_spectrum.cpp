@@ -58598,7 +58598,7 @@ static struct BurnRomInfo SpecSpiderblastenRomDesc[] = {
 };
 
 STDROMPICKEXT(SpecSpiderblasten, SpecSpiderblasten, Spec128)
-STD_ROM_FN(SpecSpiderblast128en)
+STD_ROM_FN(SpecSpiderblasten)
 
 struct BurnDriver BurnSpecSpiderblasten = {
 	"spec_spiderblasten", NULL, "spec_spec128", NULL, "2026",
@@ -58617,7 +58617,7 @@ static struct BurnRomInfo SpecSpiderblastesRomDesc[] = {
 };
 
 STDROMPICKEXT(SpecSpiderblastes, SpecSpiderblastes, Spec128)
-STD_ROM_FN(SpecSpiderblast128es)
+STD_ROM_FN(SpecSpiderblastes)
 
 struct BurnDriver BurnSpecSpiderblastes = {
 	"spec_spiderblastes", "spec_spiderblasten", "spec_spec128", NULL, "2026",
