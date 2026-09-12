@@ -39484,7 +39484,7 @@ struct BurnDriver BurnDrvmd_debtor = {
 
 // Debtor (HB, Alt)
 static struct BurnRomInfo md_debtoraRomDesc[] = {
-	{ "Debtor (Alt) (2020)(PSCD Games).bin", 2228224, 0xc16c2aa4, BRF_PRG | SEGA_MD_ROM_LOAD16_WORD_SWAP | SEGA_MD_ROM_OFFS_000000  },
+	{ "Debtor (Alt) (2020)(PSCD Games).bin", 2228224, 0x7bb67106, BRF_PRG | SEGA_MD_ROM_LOAD16_WORD_SWAP | SEGA_MD_ROM_OFFS_000000  },
 };
 
 STD_ROM_PICK(md_debtora)
