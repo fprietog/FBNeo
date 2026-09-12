@@ -39491,7 +39491,7 @@ STD_ROM_PICK(md_debtora)
 STD_ROM_FN(md_debtora)
 
 struct BurnDriver BurnDrvmd_debtora = {
-	"md_debtora", md_debtor", NULL, NULL, "2020",
+	"md_debtora", "md_debtor", NULL, NULL, "2020",
 	"Debtor (HB. Alt)\0", NULL, "PSCD Games, SharkGame", "Genesis / Mega Drive",
 	NULL, NULL, NULL, NULL,
 	BDF_GAME_WORKING | BDF_16BIT_ONLY | BDF_CLONE | BDF_HOMEBREW, 1, HARDWARE_SEGA_MEGADRIVE, GBF_PLATFORM | GBF_PUZZLE, 0,
