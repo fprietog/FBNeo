@@ -3695,7 +3695,7 @@ STDROMPICKEXT(ngpc_farkle, ngpc_farkle, ngpc_ngp)
 STD_ROM_FN(ngpc_farkle)
 
 struct BurnDriver BurnDrvngpc_farkle = {
-	"ngp_neobowling", NULL, "ngp_ngp", NULL, "2026?",
+	"ngp_tetris", NULL, "ngp_ngp", NULL, "2026?",
 	"Farkle (HB)\0", NULL, "Hardhat Warrior", "NeoGeo Pocket Color",
 	NULL, NULL, NULL, NULL,
 	BDF_GAME_WORKING | BDF_HOMEBREW, 2, HARDWARE_SNK_NGPC, GBF_BOARD, 0,
@@ -4253,7 +4253,7 @@ STDROMPICKEXT(ngpc_tetris, ngpc_tetris, ngpc_ngp)
 STD_ROM_FN(ngpc_tetris)
 
 struct BurnDriver BurnDrvngpc_tetris = {
-	"ngp_neobowling", NULL, "ngp_ngp", NULL, "2026?",
+	"ngp_tetris", NULL, "ngp_ngp", NULL, "2026?",
 	"Tetris (HB)\0", NULL, "Hardhat Warrior", "NeoGeo Pocket Color",
 	NULL, NULL, NULL, NULL,
 	BDF_GAME_WORKING | BDF_HOMEBREW, 2, HARDWARE_SNK_NGPC, GBF_PUZZLE, 0,
