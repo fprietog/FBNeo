@@ -23295,6 +23295,43 @@ struct BurnDriver BurnDrvMSX_destroyr = {
 	272, 228, 4, 3
 };
 
+// Diosa de Cozumel, La - Part 1 (Euro, Spanish)
+static struct BurnRomInfo MSX_cozumel1RomDesc[] = {
+	{ "Diosa de Cozumel, La - Part 1 (Euro, ES)(1990)(Aventuras AD)(Side A)[RUN'CAS-'].cas",	61338, 0xa97f3695, BRF_PRG | BRF_ESS },
+};
+
+STDROMPICKEXT(MSX_cozumel1, MSX_cozumel1, msx_msx)
+STD_ROM_FN(MSX_cozumel1)
+
+struct BurnDriver BurnDrvMSX_cozumel1 = {
+	"msx_cozumel1", NULL, "msx_msx", NULL, "1990",
+	"Diosa de Cozumel, La - Part 1 (Euro, Spanish)\0", NULL, "Aventuras AD", "MSX",
+	NULL, NULL, NULL, NULL,
+	BDF_GAME_WORKING, 1, HARDWARE_MSX, GBF_ADV, 0,
+	MSXGetZipName, MSX_cozumel1RomInfo, MSX_cozumel1RomName, NULL, NULL, NULL, NULL, MSXInputInfo, MSXDIPInfo,
+	CasBloadDrvInit, DrvExit, DrvFrame, TMS9928ADraw, DrvScan, NULL, 0x10,
+	272, 228, 4, 3
+};
+
+// Diosa de Cozumel, La - Part 2 (Euro, Spanish)
+static struct BurnRomInfo MSX_cozumel2RomDesc[] = {
+	{ "Diosa de Cozumel, La - Part 2 (Euro, ES)(1990)(Aventuras AD)(Side B)[RUN'CAS-'].cas",	60916, 0x158b94e7, BRF_PRG | BRF_ESS },
+	{ "Diosa de Cozumel, La - Part 2 (Euro, ES)(1990)(Aventuras AD)(PARTE2)[RUN'CAS-'].cas",	554, 0xd5a4b94f, BRF_PRG | BRF_ESS },
+};
+
+STDROMPICKEXT(MSX_cozumel2, MSX_cozumel2, msx_msx)
+STD_ROM_FN(MSX_cozumel2)
+
+struct BurnDriver BurnDrvMSX_cozumel2 = {
+	"msx_cozumel2", NULL, "msx_msx", NULL, "1990",
+	"Diosa de Cozumel, La - Part 1 (Euro, Spanish)\0", "To load Part 2 swap the tape and enter PARTE2", "Aventuras AD", "MSX",
+	NULL, NULL, NULL, NULL,
+	BDF_GAME_WORKING, 1, HARDWARE_MSX, GBF_ADV, 0,
+	MSXGetZipName, MSX_cozumel2RomInfo, MSX_cozumel2RomName, NULL, NULL, NULL, NULL, MSXInputInfo, MSXDIPInfo,
+	CasBloadDrvInit, DrvExit, DrvFrame, TMS9928ADraw, DrvScan, NULL, 0x10,
+	272, 228, 4, 3
+};
+
 // Discovery (Euro)
 static struct BurnRomInfo MSX_discoveryRomDesc[] = {
 	{ "Discovery (Euro)(1988)(Eurosoft)[RUN'CAS-'].cas",	48328, 0x417e057b, BRF_PRG | BRF_ESS },
