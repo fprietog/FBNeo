@@ -23309,7 +23309,7 @@ struct BurnDriver BurnDrvMSX_cozumel1 = {
 	NULL, NULL, NULL, NULL,
 	BDF_GAME_WORKING, 1, HARDWARE_MSX, GBF_ADV, 0,
 	MSXGetZipName, MSX_cozumel1RomInfo, MSX_cozumel1RomName, NULL, NULL, NULL, NULL, MSXInputInfo, MSXDIPInfo,
-	CasBloadDrvInit, DrvExit, DrvFrame, TMS9928ADraw, DrvScan, NULL, 0x10,
+	CasRunDrvInit, DrvExit, DrvFrame, TMS9928ADraw, DrvScan, NULL, 0x10,
 	272, 228, 4, 3
 };
 
@@ -23323,12 +23323,12 @@ STDROMPICKEXT(MSX_cozumel2, MSX_cozumel2, msx_msx)
 STD_ROM_FN(MSX_cozumel2)
 
 struct BurnDriver BurnDrvMSX_cozumel2 = {
-	"msx_cozumel2", NULL, "msx_msx", NULL, "1990",
-	"Diosa de Cozumel, La - Part 1 (Euro, Spanish)\0", "To load Part 2 swap the tape and enter PARTE2", "Aventuras AD", "MSX",
+	"msx_cozumel2", "msx_cozumel1", "msx_msx", NULL, "1990",
+	"Diosa de Cozumel, La - Part 2 (Euro, Spanish)\0", "To start Part 2 swap the tape and enter PARTE2", "Aventuras AD", "MSX",
 	NULL, NULL, NULL, NULL,
-	BDF_GAME_WORKING, 1, HARDWARE_MSX, GBF_ADV, 0,
+	BDF_GAME_WORKING | BDF_CLONE, 1, HARDWARE_MSX, GBF_ADV, 0,
 	MSXGetZipName, MSX_cozumel2RomInfo, MSX_cozumel2RomName, NULL, NULL, NULL, NULL, MSXInputInfo, MSXDIPInfo,
-	CasBloadDrvInit, DrvExit, DrvFrame, TMS9928ADraw, DrvScan, NULL, 0x10,
+	CasRunDrvInit, DrvExit, DrvFrame, TMS9928ADraw, DrvScan, NULL, 0x10,
 	272, 228, 4, 3
 };
 
