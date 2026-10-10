@@ -187,7 +187,7 @@ jobs:
         with:
           update: true
           install: msys2-devel base-devel binutils mingw-w64-i686-toolchain mingw-w64-i686-nasm zip wget perl
-          msystem: MINGW64
+          msystem: MINGW32
 
       - name: Clone
         uses: actions/checkout@v4
@@ -231,7 +231,7 @@ jobs:
         with:
           update: true
           install: msys2-devel base-devel binutils mingw-w64-i686-toolchain mingw-w64-i686-nasm zip wget perl
-          msystem: MINGW64
+          msystem: MINGW32
 
       - name: Clone
         uses: actions/checkout@v4
