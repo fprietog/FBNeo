@@ -501,6 +501,7 @@ endif
 $(NAME).exe:	$(allobj) $(objdir)/drivers.o $(depobj)
 	@echo
 	@echo Linking executable... $(NAME).exe
+	@echo $(LD) $(CFLAGS) $(LDFLAGS) $(lib)
 	@$(LD) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(lib)
 
 ifdef	DEBUG
