@@ -502,7 +502,7 @@ $(NAME).exe:	$(allobj) $(objdir)/drivers.o $(depobj)
 	@echo
 	@echo Linking executable... $(NAME).exe
 	@echo $(LD) $(CFLAGS) $(LDFLAGS) $(lib)
-	@$(LD) --verbose $(CFLAGS) $(LDFLAGS) -o $@ $^ $(lib)
+	@$(LD) $(CFLAGS) $(LDFLAGS) -Wl,--verbose -o $@ $^ $(lib)
 
 ifdef	DEBUG
 
