@@ -92,7 +92,7 @@ mingw510: FORCE
 # MinGW w/gcc 5.1.x to gcc 11.x (present)
 # note: BORKYCRT fixes swprintf() which MSYS2 broke some time 2021
 mingw: FORCE
-	@$(MAKE) -s -f makefile.mingw GCC510=1 BORKYCRT=1 -V=1 --debug
+	@$(MAKE) -s -f makefile.mingw GCC510=1 BORKYCRT=1 --debug
 
 # Cross compile a 32 bits windows binary from linux
 mingwcc: FORCE
