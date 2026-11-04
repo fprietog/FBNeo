@@ -4,7 +4,7 @@
 #define GBA_CART_H
 
 #include "gba.h"
-#include "gbabios.h"
+#include "bios.h"
 #include <ctype.h>
 
 
