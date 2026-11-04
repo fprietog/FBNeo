@@ -4,30 +4,18 @@
 #define GBA_BUS_H
 
 #include "gba.h"
-// openbus_word/mmio_word hold the guest word as a host value (LSB = lowest guest
-// address), so these extraction shifts do not depend on host endianness.
-#define GUEST_HALF_SHIFT(a) ((a) & 2 ? 16 : 0)
-#define GUEST_BYTE_SHIFT(k) ((k) * 8)
 
 static inline UINT32 gba_read32(gba_t* gba, UINT32 baddr)
 {
 	if (gba_gpio_address(gba, baddr)) {
 		UINT32 address = baddr & ~3;
 		UINT32 low     = gba_gpio_read16(gba, address);
-		// low is the value at the lower guest address, so it is always the
-		// low half of the returned word - independent of host endianness.
 		if ((address & 0x1ffffff) == 0xc4)
 			return low | ((UINT32)gba_gpio_read16(gba, address + 2) << 16);
-		UINT32 rom     = gba_rom_read16(gba, address + 2);
+		UINT32 rom     = gba_rom_read16( gba, address + 2);
 		return low | (rom << 16);
 	}
-	UINT32* val = gba_dword_lookup(gba, baddr, GBA_REQ_READ | GBA_REQ_4B);
-#ifdef LSB_FIRST
-	return *val;
-#else
-	// Big-endian: compose the word from its two half-words.
-	return (UINT32)gba_read16(gba, baddr & ~3) | ((UINT32)gba_read16(gba, (baddr & ~3) + 2) << 16);
-#endif
+	return BURN_ENDIAN_SWAP_INT32(*gba_dword_lookup(gba, baddr, GBA_REQ_READ | GBA_REQ_4B));
 }
 
 static inline UINT16 gba_read16(gba_t* gba, UINT32 baddr)
@@ -35,7 +23,8 @@ static inline UINT16 gba_read16(gba_t* gba, UINT32 baddr)
 	if (gba_gpio_address(gba, baddr))
 		return gba_gpio_read16(gba, baddr);
 	UINT32* val    = gba_dword_lookup(gba, baddr, GBA_REQ_READ | GBA_REQ_2B);
-	return (UINT16)(*val >> GUEST_HALF_SHIFT(baddr));
+	INT32   offset = SB_BFE(baddr, 1, 1);
+	return BURN_ENDIAN_SWAP_INT16(((UINT16*)val)[offset]);
 }
 
 static inline UINT8 gba_read8(gba_t* gba, UINT32 baddr)
@@ -43,7 +32,8 @@ static inline UINT8 gba_read8(gba_t* gba, UINT32 baddr)
 	if (gba_gpio_address(gba, baddr))
 		return (gba_gpio_read16(gba, baddr) >> ((baddr & 1) * 8)) & 0xff;
 	UINT32* val    = gba_dword_lookup(gba, baddr, GBA_REQ_READ | GBA_REQ_1B);
-	return (UINT8)(*val >> GUEST_BYTE_SHIFT(baddr & 3));
+	INT32   offset = SB_BFE(baddr, 0, 2);
+	return ((UINT8*)val)[offset];
 }
 
 
@@ -52,7 +42,7 @@ static inline void gba_store32(gba_t* gba, UINT32 baddr, UINT32 data)
 	if (baddr >= 0x08000000) {
 		//Mask is 0xfe to catch the sram mirror at 0x0f and 0x0e
 		if ((baddr & 0xfe000000) == 0xe000000) {
-			gba_process_backup_write(gba, baddr, (data >> GUEST_BYTE_SHIFT(baddr & 3)) & 0xFF);
+			gba_process_backup_write(gba, baddr, data >> ((baddr & 3) * 8));
 			return;
 		}
 		if (gba->cart.matrix.active && (baddr & 0x01ffff00) == 0x00800100) {
@@ -88,9 +78,9 @@ static inline void gba_store16(gba_t* gba, UINT32 baddr, UINT32 data)
 			return;
 		}
 	}
-	UINT8* val = (UINT8*)gba_dword_lookup(gba, baddr, GBA_REQ_WRITE | GBA_REQ_2B);
-	val[baddr & 2]       = (UINT8)(data & 0xff);
-	val[(baddr & 2) + 1] = (UINT8)((data >> 8) & 0xff);
+	UINT32* val    = gba_dword_lookup(gba, baddr, GBA_REQ_WRITE | GBA_REQ_2B);
+	INT32   offset = SB_BFE(baddr, 1, 1);
+	((UINT16*)val)[offset] = BURN_ENDIAN_SWAP_INT16(data);
 }
 
 static inline void gba_store8(gba_t* gba, UINT32 baddr, UINT32 data)
@@ -113,7 +103,9 @@ static inline void gba_store8(gba_t* gba, UINT32 baddr, UINT32 data)
 		// Remaining 8 bit ops are not supported on VRAM or ROM
 		return;
 	}
-	((UINT8*)gba_dword_lookup(gba, baddr, GBA_REQ_WRITE | GBA_REQ_1B))[baddr & 3] = (UINT8)data;
+	UINT32* val    = gba_dword_lookup(gba, baddr, GBA_REQ_WRITE | GBA_REQ_1B);
+	INT32   offset = SB_BFE(baddr, 0, 2);
+	((UINT8*)val)[offset] = data;
 }
 
 
@@ -353,32 +345,14 @@ static inline void arm7_write8(void* user_data, UINT32 address, UINT8 data)
 	gba_store8((gba_t*)user_data, address, data);
 }
 
-SB_ALWAYS_INLINE UINT32* gba_dword_lookup(gba_t* gba, UINT32 addr, INT32 req_type)
+static inline UINT32* gba_dword_lookup(gba_t* gba, UINT32 addr, INT32 req_type)
 {
-	UINT32 bank = addr >> 24;
-
-	// ROM fast path (bank 0x08-0x0d, the busiest); matrix/EEPROM/OOB fall through
-	if (SB_LIKELY((UINT32)(bank - 0x08) <= 5)) {
-		INT32 maddr = addr & 0x1fffffc;
-		if (SB_LIKELY(!gba->cart.matrix.active
-				&& gba->cart.backup_type != GBA_BACKUP_EEPROM
-				&& maddr < gba->cart.rom_size)) {
-			gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(*(UINT32*)(gba->mem.cart_rom + maddr));
-			if (req_type & 0x3) {
-				UINT16 res16 = (UINT16)(gba->mem.openbus_word >> GUEST_HALF_SHIFT(addr));
-				gba->mem.openbus_word = ((UINT32)res16) * 0x10001u;
-			}
-			return &gba->mem.openbus_word;
-		}
-	}
-
 	UINT32* ret = &gba->mem.openbus_word;
-	bool raw_ret = false;
-	switch (bank) {
+	switch (addr >> 24) {
 		case 0x0:
 			if (addr < 0x4000) {
 				if (gba->cpu.registers[15] < 0x4000)
-					gba->mem.bios_word = BURN_ENDIAN_SWAP_INT32(*(UINT32*)(gba->mem.bios + (addr & ~3)));
+					gba->mem.bios_word = *(UINT32*)(gba->mem.bios + (addr & ~3));
 				gba->mem.openbus_word = gba->mem.bios_word;
 			}
 			break;
@@ -386,13 +360,11 @@ SB_ALWAYS_INLINE UINT32* gba_dword_lookup(gba_t* gba, UINT32 addr, INT32 req_typ
 			break;
 		case 0x2:
 			ret = (UINT32*)(gba->mem.wram0 + (addr & 0x3fffc));
-			raw_ret = true;
-			gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(*ret);
+			gba->mem.openbus_word = *ret;
 			break;
 		case 0x3:
 			ret = (UINT32*)(gba->mem.wram1 + (addr & 0x7ffc));
-			raw_ret = true;
-			gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(*ret);
+			gba->mem.openbus_word = *ret;
 			break;
 		case 0x4:
 			if (SB_LIKELY(addr <= 0x40003ff)) {
@@ -400,7 +372,7 @@ SB_ALWAYS_INLINE UINT32* gba_dword_lookup(gba_t* gba, UINT32 addr, INT32 req_typ
 					INT32 io_reg = (addr >> 2) & 0xff;
 					if (SB_LIKELY(gba->mem.mmio_reg_valid_lookup[io_reg])) {
 						gba_process_mmio_read(gba, addr);
-						gba->mem.mmio_word = BURN_ENDIAN_SWAP_INT32(*(UINT32*)(gba->mem.io + (addr & 0x3fc))) & gba->mem.mmio_data_mask_lookup[io_reg];
+						gba->mem.mmio_word = (*(UINT32*)(gba->mem.io + (addr & 0x3fc))) & BURN_ENDIAN_SWAP_INT32(gba->mem.mmio_data_mask_lookup[io_reg]);
 						ret = &gba->mem.mmio_word;
 					}
 				} else
@@ -409,13 +381,12 @@ SB_ALWAYS_INLINE UINT32* gba_dword_lookup(gba_t* gba, UINT32 addr, INT32 req_typ
 			break;
 		case 0x5:
 			ret = (UINT32*)(gba->mem.palette + (addr & 0x3fc));
-			raw_ret = true;
-			gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(*ret);
+			gba->mem.openbus_word = *ret;
 			break;
 		case 0x6:
 			if (addr & 0x10000) {
 				ret = (UINT32*)(gba->mem.vram + (addr & 0x07ffc) + 0x10000);
-				gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(*ret);
+				gba->mem.openbus_word = *ret;
 				if (addr & 0x08000) {
 					UINT16 dispcnt = gba_io_read16(gba, GBA_DISPCNT);
 					INT32 bg_mode  = SB_BFE(dispcnt, 0, 3);
@@ -424,16 +395,13 @@ SB_ALWAYS_INLINE UINT32* gba_dword_lookup(gba_t* gba, UINT32 addr, INT32 req_typ
 						ret = &gba->mem.openbus_word;*ret = 0;
 					}
 				}
-			} else {
+			} else
 				ret = (UINT32*)(gba->mem.vram + (addr & 0x1fffc));
-				gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(*ret);
-			}
-			raw_ret = true;
+			gba->mem.openbus_word = *ret;
 			break;
 		case 0x7:
 			ret = (UINT32*)(gba->mem.oam + (addr & 0x3fc));
-			raw_ret = true;
-			gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(*ret);
+			gba->mem.openbus_word = *ret;
 			break;
 		case 0x8:
 		case 0x9:
@@ -442,48 +410,48 @@ SB_ALWAYS_INLINE UINT32* gba_dword_lookup(gba_t* gba, UINT32 addr, INT32 req_typ
 		case 0xc:
 		case 0xd: {
 			if (gba->cart.backup_type == GBA_BACKUP_EEPROM && (addr & 0xff000000) == 0x0d000000) {
-				gba->mem.openbus_word = 1;	// ready when done writing EEPROM
+				gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(1);	// ready when done writing EEPROM
 				break;
 			}
 			if (gba->cart.matrix.active) {
 				INT32 maddr = addr & 0x0ffffff;
 				if (maddr < 0x2000) {
-					gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(*(UINT32*)(gba->mem.matrix_window + (maddr & ~3)));
+					gba->mem.openbus_word = *(UINT32*)(gba->mem.matrix_window + (maddr & ~3));
 					if (req_type & 0x3) {
-						UINT16 res16 = gba->mem.openbus_word >> (addr & 2) * 8;
-						gba->mem.openbus_word = res16 * 0x10001u;
+						UINT16 res16 = BURN_ENDIAN_SWAP_INT32(gba->mem.openbus_word) >> (addr & 2) * 8;
+						gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(res16 * 0x10001u);
 					}
 				} else {
 					UINT32 echo = ((addr & ~3) >> 1) & 0xffff;
 					echo |= (((addr & ~3) + 2) >> 1) << 16;
-					gba->mem.openbus_word = echo;
+					gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(echo);
 				}
 				break;
 			}
 			INT32 maddr = addr & 0x1fffffc;
 			if (SB_UNLIKELY(maddr >= gba->cart.rom_size)) {
 				if (gba->cart.fcmini.type) {
-					gba->mem.openbus_word = gba_fcmini_get_pattern(addr) | (gba_fcmini_get_pattern(addr + 2) << 16);
+					gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(gba_fcmini_get_pattern(addr) | (gba_fcmini_get_pattern(addr + 2) << 16));
 					break;
 				}
 				if (gba_rom_mirrors_1m(gba, maddr)) {
 					maddr &= 0x0ffffc;
-					gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(*(UINT32*)(gba->mem.cart_rom + maddr));
+					gba->mem.openbus_word = *(UINT32*)(gba->mem.cart_rom + maddr);
 					if (req_type & 0x3) {
-						UINT16 res16 = gba->mem.openbus_word >> (addr & 2) * 8;
-						gba->mem.openbus_word = res16 * 0x10001u;
+						UINT16 res16 = BURN_ENDIAN_SWAP_INT32(gba->mem.openbus_word) >> (addr & 2) * 8;
+						gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(res16 * 0x10001u);
 					}
 				} else {
-					gba->mem.openbus_word = ((maddr / 2) & 0xffff) | (((maddr / 2 + 1) & 0xffff) << 16);
+					gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(((maddr / 2) & 0xffff) | (((maddr / 2 + 1) & 0xffff) << 16));
 					// EEPROM ready only at top of ROM space, not every OOB read
 					if (gba->cart.backup_type == GBA_BACKUP_EEPROM && (addr & 0x1ffffff) >= 0x01ffff00)
-						gba->mem.openbus_word = 1;
+						gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(1);
 				}
 			} else {
-				gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(*(UINT32*)(gba->mem.cart_rom + maddr));
+				gba->mem.openbus_word = *(UINT32*)(gba->mem.cart_rom + maddr);
 				if (req_type & 0x3) {
-					UINT16 res16 = gba->mem.openbus_word >> (addr & 2) * 8;
-					gba->mem.openbus_word = res16 * 0x10001u;
+					UINT16 res16 = BURN_ENDIAN_SWAP_INT32(gba->mem.openbus_word) >> (addr & 2) * 8;
+					gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(res16 * 0x10001u);
 				}
 			}
 		}
@@ -509,18 +477,16 @@ SB_ALWAYS_INLINE UINT32* gba_dword_lookup(gba_t* gba, UINT32 addr, INT32 req_typ
 			} else {
 				//Flash
 				if (gba->cart.in_chip_id_mode && addr <= 0xe000001) {
-					gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32(*(UINT32*)gba->mem.flash_chip_id);
+					gba->mem.openbus_word = *(UINT32*)gba->mem.flash_chip_id;
 					ret = &gba->mem.openbus_word;
 				} else {
 					gba->mem.sram_word = gba->mem.cart_backup[(addr & 0xffff) + gba->cart.flash_bank * 64 * 1024] * 0x01010101;
 					ret = &gba->mem.sram_word;
 				}
 			}
-			gba->mem.openbus_word = (*ret & 0xffff) * 0x10001;
+			gba->mem.openbus_word = BURN_ENDIAN_SWAP_INT32((BURN_ENDIAN_SWAP_INT32(*ret) & 0xffff) * 0x10001);
 			break;
 	}
-	if (raw_ret && (req_type & GBA_REQ_READ))
-		return &gba->mem.openbus_word;
 	return ret;
 }
 
