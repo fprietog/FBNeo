@@ -596,9 +596,8 @@ static inline void gba_ppu_render_scanline(gba_t* gba, INT32 lcd_y)
 						if (bg_x < 0 || bg_x >= size_x[bg] || bg_y < 0 || bg_y >= size_y[bg])
 							continue;
 					} else {
-						// mask instead of %: % keeps negative values negative
-						bg_x &= size_x[bg] - 1;
-						bg_y &= size_y[bg] - 1;
+						bg_x %= size_x[bg];
+						bg_y %= size_y[bg];
 					}
 				} else {
 					if (mosaic_bg[bg]) {
